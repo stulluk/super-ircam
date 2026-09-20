@@ -1,0 +1,17 @@
+FROM debian:sid
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    flatpak \
+    flatpak-builder \
+    git \
+    ostree \
+    desktop-file-utils \
+    elfutils \
+  && rm -rf /var/lib/apt/lists/* \
+  && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+WORKDIR /work

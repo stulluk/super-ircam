@@ -4,6 +4,7 @@
 #include <QCommandLineParser>
 #include <QDir>
 #include <QMetaType>
+#include <QTimer>
 
 #include <algorithm>
 
@@ -40,7 +41,12 @@ int main(int argc, char *argv[]) {
     const QStringList names = cmapNames();
     int idx = names.indexOf(want);
     if (idx < 0) {
-      idx = names.indexOf(want, 0, Qt::CaseInsensitive);
+      for (int i = 0; i < names.size(); ++i) {
+        if (names[i].compare(want, Qt::CaseInsensitive) == 0) {
+          idx = i;
+          break;
+        }
+      }
     }
     if (idx >= 0) {
       window.setCmapIndex(idx);
@@ -91,22 +97,32 @@ int main(int argc, char *argv[]) {
   if (parser.isSet(shotOpt)) {
     const QString path = parser.value(shotOpt);
     const bool quitAfter = parser.isSet(quitOpt);
+    auto *shotSaved = new bool(false);
     QObject::connect(
         &window, &MainWindow::frameReceived, &app,
-        [&window, path, quitAfter]() {
+        [&window, path, quitAfter, shotSaved]() {
           static int frames = 0;
-          static bool saved = false;
           ++frames;
-          if (saved || frames < 40) {
+          if (*shotSaved || frames < 40) {
             return;
           }
-          saved = true;
+          *shotSaved = true;
           window.saveWindowShot(path);
           if (quitAfter) {
             QApplication::quit();
           }
         },
         Qt::QueuedConnection);
+    if (quitAfter) {
+      QTimer::singleShot(4000, &app, [&window, path, shotSaved]() {
+        if (*shotSaved) {
+          return;
+        }
+        *shotSaved = true;
+        window.saveWindowShot(path);
+        QApplication::quit();
+      });
+    }
   }
 
   return app.exec();

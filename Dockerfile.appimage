@@ -1,0 +1,23 @@
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    cmake \
+    desktop-file-utils \
+    file \
+    g++ \
+    libgl1-mesa-dev \
+    libopencv-dev \
+    make \
+    pkg-config \
+    python3 \
+    qt6-base-dev \
+    qt6-base-dev-tools \
+    qt6-wayland \
+    wget \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work

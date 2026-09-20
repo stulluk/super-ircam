@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.stulluk.SuperIRCam</id>
+  <name>Super IRCam</name>
+  <summary>Qt viewer for Qianli Super IRCam / InfiRay USB thermal cameras</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      Super IRCam is a from-scratch Qt 6 desktop viewer for USB thermal
+      cameras that appear as UVC 0bda:5830. It reads raw V4L2 YUYV frames,
+      decodes 16-bit Kelvin radiometry, and draws on-image temperatures.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.github.stulluk.SuperIRCam.desktop</launchable>
+  <url type="homepage">https://github.com/stulluk/super-ircam</url>
+  <provides>
+    <binary>super-ircam</binary>
+  </provides>
+</component>

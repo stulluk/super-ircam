@@ -1,0 +1,60 @@
+app-id: com.github.stulluk.SuperIRCam
+runtime: org.kde.Platform
+runtime-version: "6.10"
+sdk: org.kde.Sdk
+command: super-ircam
+build-options:
+  no-debuginfo: true
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --device=all
+  - --filesystem=/sys:ro
+  - --filesystem=xdg-pictures:create
+  - --filesystem=xdg-videos:create
+  - --filesystem=xdg-config/super-ircam:create
+modules:
+  - name: opencv
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTS=OFF
+      - -DBUILD_PERF_TESTS=OFF
+      - -DBUILD_EXAMPLES=OFF
+      - -DBUILD_opencv_apps=OFF
+      - -DBUILD_opencv_python3=OFF
+      - -DWITH_GTK=OFF
+      - -DWITH_QT=OFF
+      - -DWITH_OPENGL=OFF
+      - -DWITH_CUDA=OFF
+      - -DWITH_OPENCL=OFF
+      - -DWITH_FFMPEG=ON
+      - -DWITH_GSTREAMER=OFF
+      - -DWITH_V4L=ON
+      - -DBUILD_LIST=core,imgproc,imgcodecs,videoio
+    sources:
+      - type: git
+        url: https://github.com/opencv/opencv.git
+        tag: 4.10.0
+  - name: super-ircam
+    buildsystem: cmake-ninja
+    builddir: true
+    subdir: gui
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: dir
+        path: ../..
+    post-install:
+      - desktop-file-edit --set-key=Exec --set-value=super-ircam
+        /app/share/applications/super-ircam.desktop
+      - desktop-file-edit --set-key=Icon --set-value=com.github.stulluk.SuperIRCam
+        /app/share/applications/super-ircam.desktop
+      - desktop-file-edit --set-key=StartupWMClass --set-value=super-ircam
+        /app/share/applications/super-ircam.desktop
+      - mv /app/share/applications/super-ircam.desktop
+        /app/share/applications/com.github.stulluk.SuperIRCam.desktop

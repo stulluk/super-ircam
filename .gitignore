@@ -7,3 +7,4 @@ captures/
 .cache/
 build/
 third_party/
+.flatpak-builder/

@@ -1,0 +1,53 @@
+name: Portable packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates cmake desktop-file-utils file g++ \
+            libgl1-mesa-dev libopencv-dev make pkg-config python3 \
+            qt6-base-dev qt6-base-dev-tools wget
+
+      - name: Build AppImage
+        run: /bin/bash scripts/build_appimage_in_container.sh
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: super-ircam-appimage
+          path: dist/SuperIRCam-x86_64.AppImage
+          if-no-files-found: error
+
+  flatpak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
+      options: --privileged
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: SuperIRCam.flatpak
+          manifest-path: packaging/flatpak/com.github.stulluk.SuperIRCam.yml
+          cache-key: flatpak-kde-6.10-${{ hashFiles('packaging/flatpak/**', 'gui/**') }}
