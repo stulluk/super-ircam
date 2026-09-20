@@ -7,6 +7,35 @@ Inspired by [Thermal-Camera-Redux](https://github.com/92es/Thermal-Camera-Redux)
 but developed as a new application from scratch. Super IRCam does not fork,
 link, exec, or vendor Redux source. It is an independent C++ program.
 
+## Hardware
+
+Qianli Super IRCam Pro 2S (MESA-IDEA stand) over a PCB:
+
+![Qianli Super IRCam Pro 2S on a stand above a PCB](docs/images/hardware_setup.png)
+
+## Screenshots
+
+Default Jet view with on-image min / max / center temperatures and the
+two-column control panel:
+
+![Super IRCam Jet colormap](docs/images/gui_jet.png)
+
+Inferno, Ironbow, and Magma on the same scene:
+
+![Inferno colormap](docs/images/gui_inferno.png)
+
+![Ironbow colormap](docs/images/gui_ironbow.png)
+
+![Magma colormap](docs/images/gui_magma.png)
+
+Image + thermal side-by-side layout:
+
+![Img+Therm wide layout](docs/images/gui_wide.png)
+
+Visual-only layout (camera Y plane):
+
+![Image layout](docs/images/gui_visual.png)
+
 ## Redux vs Super IRCam
 
 **Thermal-Camera-Redux** is a keyboard-and-OSD Linux app built around OpenCV
@@ -64,6 +93,10 @@ If this tree also contains `third_party/Thermal-Camera-Redux` (local
 development checkout), `indockerbuild.sh` builds the Redux `.deb` as well.
 The public GitHub tree does not vendor Redux; build that package from
 https://github.com/stulluk/Thermal-Camera-Redux instead.
+
+Every push to `main` also builds the `.deb` on GitHub Actions
+(`.github/workflows/deb.yml`). Download the `super-ircam-deb` artifact from
+the workflow run.
 
 ## Run
 

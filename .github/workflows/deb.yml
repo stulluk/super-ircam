@@ -1,0 +1,34 @@
+name: Debian package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: ./dockerbuild.sh
+
+      - name: Compile and package .deb
+        run: ./indockerbuild.sh
+
+      - name: Show artifacts
+        run: ls -l dist
+
+      - name: Upload super-ircam .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: super-ircam-deb
+          path: dist/super-ircam_*.deb
+          if-no-files-found: error

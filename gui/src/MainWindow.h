@@ -56,6 +56,7 @@ class MainWindow : public QMainWindow {
   ~MainWindow() override;
 
   void setCmapIndex(int index);
+  void setLayoutIndex(int index);
   void setZoom(int zoom);
   void setBlur(int radius);
   bool saveWindowShot(const QString &path);

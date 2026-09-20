@@ -279,7 +279,15 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::setCmapIndex(int index) {
-  m_cmap->setCurrentIndex(index);
+  if (index >= 0 && index < m_cmap->count()) {
+    m_cmap->setCurrentIndex(index);
+  }
+}
+
+void MainWindow::setLayoutIndex(int index) {
+  if (index >= 0 && index < m_layout->count()) {
+    m_layout->setCurrentIndex(index);
+  }
 }
 
 void MainWindow::setZoom(int zoom) {
