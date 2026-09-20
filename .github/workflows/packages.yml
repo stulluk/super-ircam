@@ -23,7 +23,7 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates cmake desktop-file-utils file g++ \
             libgl1-mesa-dev libopencv-dev make pkg-config python3 \
-            qt6-base-dev qt6-base-dev-tools wget
+            qt6-base-dev qt6-base-dev-tools qt6-wayland wget
 
       - name: Build AppImage
         run: /bin/bash scripts/build_appimage_in_container.sh

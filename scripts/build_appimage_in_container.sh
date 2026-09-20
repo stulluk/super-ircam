@@ -33,7 +33,10 @@ fi
 
 export APPIMAGE_EXTRACT_AND_RUN=1
 export LINUXDEPLOY_OUTPUT_VERSION=0.2.0
-export EXTRA_PLATFORM_PLUGINS="libqwayland-generic.so;libqwayland-egl.so"
+WAYLAND_PLUGIN="/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland-generic.so"
+if [ -f "${WAYLAND_PLUGIN}" ]; then
+  export EXTRA_PLATFORM_PLUGINS="libqwayland-generic.so;libqwayland-egl.so"
+fi
 export QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake}"
 if [ ! -x "${QMAKE}" ]; then
   QMAKE="$(command -v qmake6 || command -v qmake || true)"
