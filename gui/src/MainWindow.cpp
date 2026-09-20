@@ -8,13 +8,13 @@
 #include <QDoubleSpinBox>
 #include <QEvent>
 #include <QFile>
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
-#include <QScrollArea>
 #include <QSlider>
 #include <QStandardPaths>
 #include <QVBoxLayout>
@@ -41,12 +41,19 @@ QWidget *labeledSlider(const QString &title, QSlider *slider, QLabel **valueOut)
   return w;
 }
 
+/** Append a title label followed by a control to a column layout. */
+void addLabeled(QVBoxLayout *box, const QString &title, QWidget *widget) {
+  box->addWidget(new QLabel(title));
+  box->addWidget(widget);
+}
+
 }  // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   setWindowTitle("Super IRCam");
   setWindowIcon(QIcon::fromTheme("super-ircam", QIcon("/usr/share/icons/hicolor/128x128/apps/super-ircam.png")));
-  resize(1180, 800);
+  resize(1480, 780);
+  setMinimumSize(1180, 700);
   setStyleSheet(
       "QMainWindow, QWidget { background: #1b1d22; color: #e8e8e8; }"
       "QLabel { color: #e8e8e8; }"
@@ -93,28 +100,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   connect(m_image, &ImageCanvas::canvasPressed, this, &MainWindow::onCanvasPressed);
   root->addWidget(m_image, 1);
 
-  auto *scroll = new QScrollArea;
-  scroll->setWidgetResizable(true);
-  scroll->setFixedWidth(328);
-  scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-  scroll->setStyleSheet(
-      "QScrollArea { background: #1b1d22; border: none; }"
-      "QScrollBar:vertical {"
-      "  background: #111318; width: 16px; margin: 0; border-left: 1px solid #5a6270; }"
-      "QScrollBar::handle:vertical {"
-      "  background: #e07830; min-height: 36px; margin: 2px; border-radius: 6px; }"
-      "QScrollBar::handle:vertical:hover { background: #ff9a3c; }"
-      "QScrollBar::handle:vertical:pressed { background: #c45c26; }"
-      "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
-      "  height: 0; background: none; border: none; }"
-      "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
-      "  background: #2a2e38; }");
   auto *side = new QWidget;
+  side->setMinimumWidth(540);
   auto *box = new QVBoxLayout(side);
   box->setSpacing(6);
-  scroll->setWidget(side);
-  root->addWidget(scroll);
+  root->addWidget(side, 0);
 
   auto *title = new QLabel("Super IRCam");
   title->setStyleSheet("font-weight: 600; font-size: 18px;");
@@ -130,34 +120,43 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   m_centerLabel = new QLabel("Center: —");
   m_spotsLabel = new QLabel("User spots: 0 (left-click add, right-click clear)");
   m_spotsLabel->setWordWrap(true);
-  box->addWidget(m_minLabel);
-  box->addWidget(m_avgLabel);
-  box->addWidget(m_maxLabel);
-  box->addWidget(m_centerLabel);
+  auto *stats = new QGridLayout;
+  stats->setContentsMargins(0, 0, 0, 0);
+  stats->addWidget(m_minLabel, 0, 0);
+  stats->addWidget(m_avgLabel, 0, 1);
+  stats->addWidget(m_maxLabel, 1, 0);
+  stats->addWidget(m_centerLabel, 1, 1);
+  box->addLayout(stats);
   box->addWidget(m_spotsLabel);
 
-  box->addWidget(new QLabel("Colormap (Redux set)"));
+  auto *leftCol = new QWidget;
+  auto *rightCol = new QWidget;
+  auto *left = new QVBoxLayout(leftCol);
+  auto *right = new QVBoxLayout(rightCol);
+  left->setContentsMargins(0, 0, 0, 0);
+  right->setContentsMargins(0, 0, 0, 0);
+  left->setSpacing(6);
+  right->setSpacing(6);
+
   m_cmap = new QComboBox;
   m_cmap->addItems(cmapNames());
   m_cmap->setCurrentIndex(defaultCmapIndex());
-  box->addWidget(m_cmap);
+  addLabeled(left, "Colormap (Redux set)", m_cmap);
 
-  box->addWidget(new QLabel("Layout"));
   m_layout = new QComboBox;
   m_layout->addItems({"Thermal", "Image", "Img+Therm wide", "Img+Therm high"});
-  box->addWidget(m_layout);
+  addLabeled(left, "Layout", m_layout);
 
-  box->addWidget(new QLabel("Interpolation"));
   m_inter = new QComboBox;
   m_inter->addItems({"Nearest", "Linear", "Cubic", "Area", "Lanczos4", "Lin Exact", "Near Exact"});
   m_inter->setCurrentIndex(2);
-  box->addWidget(m_inter);
+  addLabeled(left, "Interpolation", m_inter);
 
   QLabel *zoomVal = nullptr;
   m_zoom = new QSlider(Qt::Horizontal);
   m_zoom->setRange(1, 5);
   m_zoom->setValue(3);
-  box->addWidget(labeledSlider("Zoom", m_zoom, &zoomVal));
+  left->addWidget(labeledSlider("Zoom", m_zoom, &zoomVal));
   zoomVal->setText("3x");
   connect(m_zoom, &QSlider::valueChanged, this, [zoomVal](int v) { zoomVal->setText(QString("%1x").arg(v)); });
 
@@ -165,7 +164,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   m_blur = new QSlider(Qt::Horizontal);
   m_blur->setRange(0, 8);
   m_blur->setValue(0);
-  box->addWidget(labeledSlider("Blur", m_blur, &blurVal));
+  left->addWidget(labeledSlider("Blur", m_blur, &blurVal));
   blurVal->setText("0");
   connect(m_blur, &QSlider::valueChanged, this, [blurVal](int v) { blurVal->setText(QString::number(v)); });
 
@@ -173,16 +172,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   m_contrast = new QSlider(Qt::Horizontal);
   m_contrast->setRange(5, 30);
   m_contrast->setValue(10);
-  box->addWidget(labeledSlider("Contrast", m_contrast, &conVal));
+  left->addWidget(labeledSlider("Contrast", m_contrast, &conVal));
   conVal->setText("1.0");
   connect(m_contrast, &QSlider::valueChanged, this,
           [conVal](int v) { conVal->setText(QString::number(v / 10.0, 'f', 1)); });
+  left->addStretch(1);
 
   QLabel *thrVal = nullptr;
   m_threshold = new QSlider(Qt::Horizontal);
   m_threshold->setRange(0, 40);
   m_threshold->setValue(2);
-  box->addWidget(labeledSlider("Threshold from avg", m_threshold, &thrVal));
+  right->addWidget(labeledSlider("Threshold from avg", m_threshold, &thrVal));
   thrVal->setText("2.0");
   connect(m_threshold, &QSlider::valueChanged, this,
           [thrVal](int v) { thrVal->setText(QString::number(v, 'f', 1)); });
@@ -191,44 +191,53 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   m_rotate = new QSlider(Qt::Horizontal);
   m_rotate->setRange(0, 3);
   m_rotate->setValue(0);
-  box->addWidget(labeledSlider("Rotate (90° steps)", m_rotate, &rotVal));
+  right->addWidget(labeledSlider("Rotate (90° steps)", m_rotate, &rotVal));
   rotVal->setText("0°");
   connect(m_rotate, &QSlider::valueChanged, this,
           [rotVal](int v) { rotVal->setText(QString("%1°").arg(v * 90)); });
 
-  box->addWidget(new QLabel("Rulers"));
   m_rulers = new QComboBox;
   m_rulers->addItems({"Off", "One temp", "Cross hair", "Horizontal", "Vertical", "Both"});
-  box->addWidget(m_rulers);
+  addLabeled(right, "Rulers", m_rulers);
 
-  box->addWidget(new QLabel("Locked range method"));
   m_rangeMode = new QComboBox;
   m_rangeMode->addItems({"None", "Clip", "Grow"});
-  box->addWidget(m_rangeMode);
+  addLabeled(right, "Locked range method", m_rangeMode);
 
   m_fahrenheit = new QCheckBox("Show Fahrenheit");
   m_freeze = new QCheckBox("Freeze frame");
   m_histogram = new QCheckBox("Histogram (gray maps)");
   m_lockRange = new QCheckBox("Lock colormap auto-range");
   m_alarmOn = new QCheckBox("High-temp alarm");
-  box->addWidget(m_fahrenheit);
-  box->addWidget(m_freeze);
-  box->addWidget(m_histogram);
-  box->addWidget(m_lockRange);
-  box->addWidget(m_alarmOn);
+  right->addWidget(m_fahrenheit);
+  right->addWidget(m_freeze);
+  right->addWidget(m_histogram);
+  right->addWidget(m_lockRange);
+  right->addWidget(m_alarmOn);
   m_alarmC = new QDoubleSpinBox;
   m_alarmC->setRange(-20.0, 400.0);
   m_alarmC->setSuffix(" °C");
   m_alarmC->setValue(80.0);
-  box->addWidget(m_alarmC);
+  right->addWidget(m_alarmC);
+  right->addStretch(1);
+
+  auto *cols = new QHBoxLayout;
+  cols->setContentsMargins(0, 0, 0, 0);
+  cols->setSpacing(12);
+  cols->addWidget(leftCol, 1);
+  cols->addWidget(rightCol, 1);
+  box->addLayout(cols);
 
   m_snapshot = new QPushButton("Snapshot (PNG + RAW)");
   m_record = new QPushButton("Record AVI");
   m_record->setCheckable(true);
   m_reset = new QPushButton("Reset defaults");
-  box->addWidget(m_snapshot);
-  box->addWidget(m_record);
-  box->addWidget(m_reset);
+  auto *btns = new QHBoxLayout;
+  btns->setContentsMargins(0, 0, 0, 0);
+  btns->addWidget(m_snapshot);
+  btns->addWidget(m_record);
+  btns->addWidget(m_reset);
+  box->addLayout(btns);
   m_recordLabel = new QLabel;
   m_recordLabel->setWordWrap(true);
   box->addWidget(m_recordLabel);
