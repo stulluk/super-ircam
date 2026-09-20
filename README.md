@@ -76,14 +76,21 @@ https://github.com/stulluk/Thermal-Camera-Redux
 - Save Settings to `~/.config/super-ircam/settings.json`
 - Start-menu and desktop launcher icons
 
-## Install (AppImage or Flatpak)
+## Install
 
-A sid-built `.deb` does not install on Ubuntu 22.04 (newer glibc / Qt /
-OpenCV sonames). GitHub Actions therefore publishes two portable artifacts
-from `.github/workflows/packages.yml`:
+There is no `.deb`. Every push to `main` builds two portable packages on
+GitHub Actions (`.github/workflows/packages.yml`):
 
-- `SuperIRCam-x86_64.AppImage` — built on Ubuntu 22.04
-- `SuperIRCam.flatpak` — KDE Platform 6.10, OpenCV built inside the sandbox
+- **AppImage** — `SuperIRCam-x86_64.AppImage` (Ubuntu 22.04 / old glibc)
+- **Flatpak** — `SuperIRCam.flatpak` (KDE Platform 6.10, OpenCV in the sandbox)
+
+Open the latest green **Portable packages** run and download the artifacts:
+
+https://github.com/stulluk/super-ircam/actions
+
+Verified on Debian sid/forky and Ubuntu 22.04. Your user should be in the
+`video` group. Plug the thermal module in first; after NUC/FFC (about 3
+seconds of `0x8000` frames) the image and overlays appear.
 
 ### AppImage
 
@@ -92,20 +99,24 @@ chmod +x SuperIRCam-x86_64.AppImage
 ./SuperIRCam-x86_64.AppImage
 ```
 
-On some Ubuntu 22.04 hosts you need `libfuse2` (or extract and run
-`./SuperIRCam-x86_64.AppImage --appimage-extract`).
+Ubuntu 22.04 needs `libfuse2` for double-click / FUSE (`sudo apt install
+libfuse2`). Without it you can still run:
+
+```bash
+APPIMAGE_EXTRACT_AND_RUN=1 ./SuperIRCam-x86_64.AppImage
+```
 
 ### Flatpak
 
 ```bash
 flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user org.kde.Platform//6.10
 flatpak install --user SuperIRCam.flatpak
 flatpak run com.github.stulluk.SuperIRCam
 ```
 
-The manifest grants `--device=all` so raw V4L2 can open `/dev/video*`
-(the GNOME/KDE camera portal is not enough for this UVC radiometry node).
+The first install pulls `org.kde.Platform//6.10` from Flathub. The
+manifest grants `--device=all` so raw V4L2 can open `/dev/video*` (the
+GNOME/KDE camera portal is not enough for this UVC radiometry node).
 
 ### Build locally with Docker
 
@@ -118,27 +129,17 @@ Host `-dev` packages are not required.
 
 Outputs land in `dist/`.
 
-If this tree also contains `third_party/Thermal-Camera-Redux` (local
-development checkout), the older `indockerbuild.sh` path can still produce
-a Debian-sid `.deb`. The public GitHub tree does not vendor Redux; build
-that package from https://github.com/stulluk/Thermal-Camera-Redux instead.
+Thermal-Camera-Redux is a separate project (CLI `redux`, Docker `.deb`).
+The public Super IRCam tree does not vendor it:
 
-## Run
+https://github.com/stulluk/Thermal-Camera-Redux
 
-```bash
-./dist/SuperIRCam-x86_64.AppImage
-# or
-flatpak run com.github.stulluk.SuperIRCam
-```
-
-Optional:
+## Optional CLI flags
 
 ```bash
-./dist/SuperIRCam-x86_64.AppImage --screenshot /tmp/window.png --quit-after-shot
+./SuperIRCam-x86_64.AppImage --screenshot "$HOME/Pictures/window.png" --quit-after-shot
+flatpak run com.github.stulluk.SuperIRCam --record-seconds 2
 ```
-
-Plug in the thermal module first. After NUC/FFC (about 3 seconds of
-`0x8000` frames) the image and overlays appear.
 
 ## Two-column control panel
 
