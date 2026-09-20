@@ -1,0 +1,12 @@
+Package: super-ircam
+Version: 0.2.0-1
+Section: video
+Priority: optional
+Architecture: amd64
+Depends: libqt6core6t64, libqt6gui6, libqt6widgets6, qt6-qpa-plugins, libopencv-core410, libopencv-imgproc410, libopencv-imgcodecs410, libopencv-videoio410
+Maintainer: Sertac Tulluk <stulluk@gmail.com>
+Description: Qt GUI for Qianli Super IRCam Pro 2S
+ Button-based live viewer for USB thermal cameras that present as
+ UVC 0bda:5830. Matches Thermal Camera Redux features: 37 colormaps,
+ on-image min/max/center/user crosshairs, AVI recording, and live
+ radiometric overlay. Auto-selects the infrared module.

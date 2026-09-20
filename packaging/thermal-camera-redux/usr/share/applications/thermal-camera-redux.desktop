@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Thermal Camera Redux
+Comment=View Qianli / InfiRay USB thermal cameras
+Exec=redux
+Terminal=false
+Categories=AudioVideo;Video;
+StartupNotify=true

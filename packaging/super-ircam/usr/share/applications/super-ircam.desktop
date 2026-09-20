@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Super IRCam
+Comment=Live thermal camera with on-screen buttons
+Exec=super-ircam
+Icon=super-ircam
+Terminal=false
+Categories=AudioVideo;Video;
+StartupNotify=true
+StartupWMClass=super-ircam

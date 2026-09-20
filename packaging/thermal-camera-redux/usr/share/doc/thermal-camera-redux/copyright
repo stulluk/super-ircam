@@ -1,0 +1,14 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Thermal-Camera-Redux
+Source: https://github.com/92es/Thermal-Camera-Redux
+
+Files: *
+Copyright: Thermal-Camera-Redux authors and Les Wright (PyThermalCamera)
+License: prior-licenses
+ This package redistributes Thermal-Camera-Redux. All prior licenses of
+ Thermal-Camera-Redux and PyThermalCamera apply. See the upstream
+ repository for the full text.
+
+Files: debian/*
+Copyright: 2026 Sertac Tulluk <stulluk@gmail.com>
+License: MIT

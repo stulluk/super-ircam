@@ -1,0 +1,84 @@
+#!/bin/bash
+# Launch Thermal Camera Redux. Auto-select the InfiRay/Qianli module
+# (USB 0bda:5830) so a normal webcam is never opened by mistake.
+set -eu
+
+REAL="/usr/libexec/thermal-camera-redux/redux"
+
+usage() {
+  cat <<'EOF'
+Usage: redux [options]
+
+With no -d / -device, the first USB camera with vendor 0bda and product
+5830 (Qianli Super IRCam / Topdon TC001 / InfiRay P2 Pro family) is used.
+Default scale is 3 if -scale is omitted.
+
+Pass-through flags are those of Thermal Camera Redux (see redux -help).
+EOF
+}
+
+has_d=0
+has_scale=0
+prev=""
+for arg in "$@"; do
+  if [ "${arg}" = "-h" ] || [ "${arg}" = "-help" ]; then
+    usage
+    echo
+    exec "${REAL}" -help
+  fi
+  if [ "${arg}" = "-d" ] || [ "${arg}" = "-device" ]; then
+    has_d=1
+  fi
+  if [ "${prev}" = "-d" ] || [ "${prev}" = "-device" ]; then
+    has_d=1
+  fi
+  if [ "${arg}" = "-scale" ]; then
+    has_scale=1
+  fi
+  prev="${arg}"
+done
+
+find_ir_index() {
+  local node props vend prod
+  for node in /dev/video[0-9]*; do
+    [ -c "${node}" ] || continue
+    props="$(udevadm info -q property -n "${node}" 2>/dev/null || true)"
+    [ -n "${props}" ] || continue
+    case "${props}" in
+      *ID_V4L_CAPABILITIES=*capture*) ;;
+      *) continue ;;
+    esac
+    vend=""
+    prod=""
+    while IFS= read -r line; do
+      case "${line}" in
+        ID_VENDOR_ID=*) vend="${line#ID_VENDOR_ID=}" ;;
+        ID_MODEL_ID=*) prod="${line#ID_MODEL_ID=}" ;;
+      esac
+    done <<EOF
+${props}
+EOF
+    vend="${vend#0x}"
+    prod="${prod#0x}"
+    if [ "${vend}" = "0bda" ] && [ "${prod}" = "5830" ]; then
+      printf '%s\n' "${node#/dev/video}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+extra=()
+if [ "${has_d}" -eq 0 ]; then
+  idx="$(find_ir_index)" || {
+    echo "redux: no thermal camera found (USB 0bda:5830)." >&2
+    echo "redux: plug in the Qianli / InfiRay module, or pass -d N." >&2
+    exit 1
+  }
+  extra+=(-d "${idx}")
+fi
+if [ "${has_scale}" -eq 0 ]; then
+  extra+=(-scale 3)
+fi
+
+exec "${REAL}" "${extra[@]}" "$@"

@@ -1,0 +1,14 @@
+Package: thermal-camera-redux
+Version: 0.9.3-1
+Section: video
+Priority: optional
+Architecture: amd64
+Depends: libopencv-core410, libopencv-imgproc410, libopencv-imgcodecs410, libopencv-videoio410, libopencv-highgui410, udev
+Maintainer: Sertac Tulluk <stulluk@gmail.com>
+Description: Thermal Camera Redux for InfiRay-family USB cameras
+ Viewer for 256x192 USB thermal cameras that present as UVC
+ 0bda:5830 (Qianli Super IRCam Pro 2S, Topdon TC001, InfiRay P2 Pro).
+ The 'redux' command auto-selects that device and does not require
+ DISPLAY or LD_LIBRARY_PATH in a normal desktop session.
+ .
+ Upstream: https://github.com/92es/Thermal-Camera-Redux

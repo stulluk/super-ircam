@@ -1,0 +1,9 @@
+dist/
+captures/
+*.deb
+*.log
+*~
+*.o
+.cache/
+build/
+third_party/
