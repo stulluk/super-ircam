@@ -8,7 +8,12 @@
 #include <QDoubleSpinBox>
 #include <QEvent>
 #include <QFile>
+#include <QFileInfo>
 #include <QGridLayout>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QJsonValue>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -141,7 +146,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   m_cmap = new QComboBox;
   m_cmap->addItems(cmapNames());
   m_cmap->setCurrentIndex(defaultCmapIndex());
-  addLabeled(left, "Colormap (Redux set)", m_cmap);
+  addLabeled(left, "Colormap", m_cmap);
 
   m_layout = new QComboBox;
   m_layout->addItems({"Thermal", "Image", "Img+Therm wide", "Img+Therm high"});
@@ -231,13 +236,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   m_snapshot = new QPushButton("Snapshot (PNG + RAW)");
   m_record = new QPushButton("Record AVI");
   m_record->setCheckable(true);
+  m_saveSettings = new QPushButton("Save Settings");
   m_reset = new QPushButton("Reset defaults");
   auto *btns = new QHBoxLayout;
   btns->setContentsMargins(0, 0, 0, 0);
   btns->addWidget(m_snapshot);
   btns->addWidget(m_record);
-  btns->addWidget(m_reset);
   box->addLayout(btns);
+  auto *btns2 = new QHBoxLayout;
+  btns2->setContentsMargins(0, 0, 0, 0);
+  btns2->addWidget(m_saveSettings);
+  btns2->addWidget(m_reset);
+  box->addLayout(btns2);
   m_recordLabel = new QLabel;
   m_recordLabel->setWordWrap(true);
   box->addWidget(m_recordLabel);
@@ -250,7 +260,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   connect(m_snapshot, &QPushButton::clicked, this, &MainWindow::onSnapshot);
   connect(m_record, &QPushButton::clicked, this, &MainWindow::onRecordToggle);
+  connect(m_saveSettings, &QPushButton::clicked, this, &MainWindow::onSaveSettings);
   connect(m_reset, &QPushButton::clicked, this, &MainWindow::onReset);
+  loadSettings();
 
   ThermalDevice dev;
   QString err;
@@ -325,6 +337,118 @@ void MainWindow::onReset() {
   m_status->setText("Defaults restored.");
 }
 
+QString MainWindow::settingsFilePath() const {
+  const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+  return QDir(dir).filePath("settings.json");
+}
+
+bool MainWindow::saveSettings() {
+  const QString path = settingsFilePath();
+  QDir().mkpath(QFileInfo(path).absolutePath());
+
+  QJsonObject obj;
+  obj["version"] = 1;
+  obj["colormap"] = m_cmap->currentText();
+  obj["layout"] = m_layout->currentIndex();
+  obj["interpolation"] = m_inter->currentIndex();
+  obj["zoom"] = m_zoom->value();
+  obj["blur"] = m_blur->value();
+  obj["contrast"] = m_contrast->value();
+  obj["threshold"] = m_threshold->value();
+  obj["rotate"] = m_rotate->value();
+  obj["rulers"] = m_rulers->currentIndex();
+  obj["rangeMode"] = m_rangeMode->currentIndex();
+  obj["fahrenheit"] = m_fahrenheit->isChecked();
+  obj["histogram"] = m_histogram->isChecked();
+  obj["lockRange"] = m_lockRange->isChecked();
+  obj["alarmOn"] = m_alarmOn->isChecked();
+  obj["alarmC"] = m_alarmC->value();
+  QJsonObject win;
+  win["x"] = x();
+  win["y"] = y();
+  win["w"] = width();
+  win["h"] = height();
+  obj["window"] = win;
+
+  QFile f(path);
+  if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    m_status->setText(QString("Could not write %1").arg(path));
+    return false;
+  }
+  f.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
+  m_status->setText(QString("Settings saved to %1").arg(path));
+  return true;
+}
+
+void MainWindow::onSaveSettings() {
+  saveSettings();
+}
+
+void MainWindow::loadSettings() {
+  const QString path = settingsFilePath();
+  QFile f(path);
+  if (!f.exists() || !f.open(QIODevice::ReadOnly)) {
+    return;
+  }
+  QJsonParseError err;
+  const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+  if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+    m_status->setText(QString("Settings file is invalid: %1").arg(path));
+    return;
+  }
+  const QJsonObject obj = doc.object();
+  const int cmap = m_cmap->findText(obj.value("colormap").toString());
+  if (cmap >= 0) {
+    m_cmap->setCurrentIndex(cmap);
+  }
+  const auto setCombo = [](QComboBox *box, const QJsonValue &v) {
+    if (!v.isDouble()) {
+      return;
+    }
+    const int i = v.toInt();
+    if (i >= 0 && i < box->count()) {
+      box->setCurrentIndex(i);
+    }
+  };
+  setCombo(m_layout, obj.value("layout"));
+  setCombo(m_inter, obj.value("interpolation"));
+  setCombo(m_rulers, obj.value("rulers"));
+  setCombo(m_rangeMode, obj.value("rangeMode"));
+  if (obj.contains("zoom")) {
+    m_zoom->setValue(obj.value("zoom").toInt(m_zoom->value()));
+  }
+  if (obj.contains("blur")) {
+    m_blur->setValue(obj.value("blur").toInt(m_blur->value()));
+  }
+  if (obj.contains("contrast")) {
+    m_contrast->setValue(obj.value("contrast").toInt(m_contrast->value()));
+  }
+  if (obj.contains("threshold")) {
+    m_threshold->setValue(obj.value("threshold").toInt(m_threshold->value()));
+  }
+  if (obj.contains("rotate")) {
+    m_rotate->setValue(obj.value("rotate").toInt(m_rotate->value()));
+  }
+  m_fahrenheit->setChecked(obj.value("fahrenheit").toBool(false));
+  m_histogram->setChecked(obj.value("histogram").toBool(false));
+  m_lockRange->setChecked(obj.value("lockRange").toBool(false));
+  m_alarmOn->setChecked(obj.value("alarmOn").toBool(false));
+  if (obj.contains("alarmC")) {
+    m_alarmC->setValue(obj.value("alarmC").toDouble(m_alarmC->value()));
+  }
+  const QJsonObject win = obj.value("window").toObject();
+  if (!win.isEmpty() && win.contains("w") && win.contains("h")) {
+    const int w = win.value("w").toInt(width());
+    const int h = win.value("h").toInt(height());
+    if (w >= minimumWidth() && h >= minimumHeight()) {
+      resize(w, h);
+    }
+    if (win.contains("x") && win.contains("y")) {
+      move(win.value("x").toInt(x()), win.value("y").toInt(y()));
+    }
+  }
+}
+
 void MainWindow::onError(const QString &message) {
   m_status->setText(message);
 }
@@ -365,22 +489,34 @@ void MainWindow::onRecordToggle() {
     m_status->setText("No frame to record yet.");
     return;
   }
-  startRecorder(m_lastPixmap.size());
+  try {
+    startRecorder(m_lastPixmap.size());
+  } catch (const cv::Exception &e) {
+    m_recording = false;
+    m_record->setChecked(false);
+    m_status->setText(QString("AVI open failed: %1").arg(e.what()));
+  }
 }
 
 void MainWindow::startRecorder(const QSize &frameSize) {
   const QString dir = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
   QDir().mkpath(dir);
   const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");
-  m_recordPath = QString("%1/super-ircam-%2_output.avi").arg(dir, stamp);
-  const cv::Size sz(frameSize.width(), frameSize.height());
-  bool ok = m_writer.open(m_recordPath.toStdString(),
-                          cv::VideoWriter::fourcc('X', 'V', 'I', 'D'), 25.0, sz, true);
-  if (!ok) {
-    ok = m_writer.open(m_recordPath.toStdString(),
-                       cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 25.0, sz, true);
+  m_recordPath = QString("%1/super-ircam-%2.avi").arg(dir, stamp);
+  int w = frameSize.width() & ~1;
+  int h = frameSize.height() & ~1;
+  if (w < 2 || h < 2) {
+    m_status->setText("Frame too small to record.");
+    m_record->setChecked(false);
+    return;
   }
+  m_recSize = cv::Size(w, h);
+  const std::string path = m_recordPath.toStdString();
+  bool ok = m_writer.open(path, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 25.0, m_recSize, true);
   if (!ok) {
+    ok = m_writer.open(path, cv::VideoWriter::fourcc('X', 'V', 'I', 'D'), 25.0, m_recSize, true);
+  }
+  if (!ok || !m_writer.isOpened()) {
     m_status->setText("Could not open AVI writer.");
     m_recording = false;
     m_record->setChecked(false);
@@ -388,6 +524,7 @@ void MainWindow::startRecorder(const QSize &frameSize) {
   }
   m_recording = true;
   m_recFrames = 0;
+  m_record->setChecked(true);
   m_recordLabel->setText("Recording " + m_recordPath);
 }
 
@@ -396,6 +533,7 @@ void MainWindow::stopRecorder() {
     m_writer.release();
   }
   m_recording = false;
+  m_recSize = cv::Size();
 }
 
 float MainWindow::displayTemp(float celsius) const {
@@ -756,19 +894,29 @@ void MainWindow::onFrame(const QVector<float> &celsius, const QImage &visualY,
   m_image->setPixmap(m_lastPixmap);
 
   if (m_recording && m_writer.isOpened()) {
-    QImage rgb = img.convertToFormat(QImage::Format_RGB888);
-    cv::Mat mat(rgb.height(), rgb.width(), CV_8UC3, rgb.bits(), rgb.bytesPerLine());
-    cv::Mat bgr;
-    cv::cvtColor(mat, bgr, cv::COLOR_RGB2BGR);
-    if (bgr.size() != cv::Size(static_cast<int>(m_writer.get(cv::CAP_PROP_FRAME_WIDTH)),
-                               static_cast<int>(m_writer.get(cv::CAP_PROP_FRAME_HEIGHT)))) {
-      cv::resize(bgr, bgr,
-                 cv::Size(static_cast<int>(m_writer.get(cv::CAP_PROP_FRAME_WIDTH)),
-                          static_cast<int>(m_writer.get(cv::CAP_PROP_FRAME_HEIGHT))));
+    try {
+      QImage rgb = img.convertToFormat(QImage::Format_RGB888);
+      cv::Mat mat(rgb.height(), rgb.width(), CV_8UC3, rgb.bits(),
+                  static_cast<size_t>(rgb.bytesPerLine()));
+      cv::Mat bgr;
+      cv::cvtColor(mat, bgr, cv::COLOR_RGB2BGR);
+      if (m_recSize.width > 0 && m_recSize.height > 0 && bgr.size() != m_recSize) {
+        cv::resize(bgr, bgr, m_recSize);
+      }
+      if (!bgr.empty() && !bgr.isContinuous()) {
+        bgr = bgr.clone();
+      }
+      if (!bgr.empty()) {
+        m_writer.write(bgr);
+        ++m_recFrames;
+        m_recordLabel->setText(
+            QString("Recording %1 frames → %2").arg(m_recFrames).arg(m_recordPath));
+      }
+    } catch (const cv::Exception &e) {
+      stopRecorder();
+      m_record->setChecked(false);
+      m_status->setText(QString("AVI write failed: %1").arg(e.what()));
     }
-    m_writer.write(bgr);
-    ++m_recFrames;
-    m_recordLabel->setText(QString("Recording %1 frames → %2").arg(m_recFrames).arg(m_recordPath));
   }
   emit frameReceived();
 }

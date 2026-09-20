@@ -60,11 +60,13 @@ class MainWindow : public QMainWindow {
   void setZoom(int zoom);
   void setBlur(int radius);
   bool saveWindowShot(const QString &path);
+  bool saveSettings();
   bool hasFrame() const { return !m_celsius.isEmpty(); }
 
  public slots:
   void onSnapshot();
   void onRecordToggle();
+  void onSaveSettings();
   void onReset();
 
  signals:
@@ -89,6 +91,8 @@ class MainWindow : public QMainWindow {
   void updateTempLabels();
   void startRecorder(const QSize &frameSize);
   void stopRecorder();
+  QString settingsFilePath() const;
+  void loadSettings();
 
   CaptureThread *m_capture = nullptr;
   ImageCanvas *m_image = nullptr;
@@ -118,6 +122,7 @@ class MainWindow : public QMainWindow {
   QDoubleSpinBox *m_alarmC = nullptr;
   QPushButton *m_snapshot = nullptr;
   QPushButton *m_record = nullptr;
+  QPushButton *m_saveSettings = nullptr;
   QPushButton *m_reset = nullptr;
 
   QPixmap m_lastPixmap;
@@ -132,6 +137,7 @@ class MainWindow : public QMainWindow {
   bool m_lockInit = false;
   QString m_devicePath;
   cv::VideoWriter m_writer;
+  cv::Size m_recSize;
   bool m_recording = false;
   QString m_recordPath;
   int m_recFrames = 0;

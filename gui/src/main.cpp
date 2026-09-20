@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QMetaType>
 
+#include <algorithm>
+
 int main(int argc, char *argv[]) {
   qRegisterMetaType<QVector<float>>("QVector<float>");
   qRegisterMetaType<QImage>("QImage");
@@ -22,10 +24,14 @@ int main(int argc, char *argv[]) {
   QCommandLineOption quitOpt("quit-after-shot", "Quit after --screenshot is written.");
   QCommandLineOption cmapOpt("cmap", "Colormap name (Jet, Inferno, Ironbow, ...).", "name");
   QCommandLineOption layoutOpt("layout", "Layout: thermal, image, wide, or high.", "name");
+  QCommandLineOption saveOpt("save-settings", "Write current UI settings to ~/.config/super-ircam/settings.json.");
+  QCommandLineOption recOpt("record-seconds", "Record AVI for N seconds after warmup, then stop.", "seconds");
   parser.addOption(shotOpt);
   parser.addOption(quitOpt);
   parser.addOption(cmapOpt);
   parser.addOption(layoutOpt);
+  parser.addOption(saveOpt);
+  parser.addOption(recOpt);
   parser.process(app);
 
   MainWindow window;
@@ -53,6 +59,34 @@ int main(int argc, char *argv[]) {
     window.setLayoutIndex(idx);
   }
   window.show();
+  if (parser.isSet(saveOpt)) {
+    window.saveSettings();
+    if (!parser.isSet(shotOpt) && !parser.isSet(recOpt)) {
+      return 0;
+    }
+  }
+
+  if (parser.isSet(recOpt)) {
+    const int seconds = std::max(1, parser.value(recOpt).toInt());
+    QObject::connect(
+        &window, &MainWindow::frameReceived, &app,
+        [&window, seconds]() {
+          static int frames = 0;
+          static bool started = false;
+          static bool stopped = false;
+          ++frames;
+          if (!started && frames >= 40) {
+            started = true;
+            window.onRecordToggle();
+          }
+          if (started && !stopped && frames >= 40 + seconds * 25) {
+            stopped = true;
+            window.onRecordToggle();
+            QApplication::quit();
+          }
+        },
+        Qt::QueuedConnection);
+  }
 
   if (parser.isSet(shotOpt)) {
     const QString path = parser.value(shotOpt);

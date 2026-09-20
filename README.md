@@ -72,7 +72,8 @@ https://github.com/stulluk/Thermal-Camera-Redux
 - 37 Redux colormaps, 7 interpolations, 4 layouts
 - On-image max / min / center crosshairs with °C (or °F)
 - Up to 12 user spots (left-click add, right-click clear)
-- Snapshot PNG+RAW and AVI recording (XVID / MJPG)
+- Snapshot PNG+RAW and AVI recording (MJPG)
+- Save Settings to `~/.config/super-ircam/settings.json`
 - Start-menu and desktop launcher icons
 
 ## Build the `.deb` with Docker
